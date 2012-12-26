@@ -115,7 +115,11 @@ char ouputextradatafilename [] = "/data/extradata";
 
 #ifdef USE_ION
     #define MEM_DEVICE "/dev/ion"
+    #ifdef MAX_RES_720P
+    #define MEM_HEAP_ID ION_CAMERA_HEAP_ID
+    #else
     #define MEM_HEAP_ID ION_CP_MM_HEAP_ID
+    #endif
 #elif MAX_RES_720P
 #define MEM_DEVICE "/dev/pmem_adsp"
 #elif MAX_RES_1080P_EBI
@@ -2925,18 +2929,9 @@ OMX_ERRORTYPE  omx_vdec::get_parameter(OMX_IN OMX_HANDLETYPE     hComp,
       else if (1 == portFmt->nPortIndex)
       {
         portFmt->eCompressionFormat =  OMX_VIDEO_CodingUnused;
-#ifdef MAX_RES_720P
-        if (0 == portFmt->nIndex)
-          portFmt->eColorFormat = OMX_COLOR_FormatYUV420SemiPlanar;
-        else if(1 == portFmt->nIndex)
-          portFmt->eColorFormat = (OMX_COLOR_FORMATTYPE)
-            QOMX_COLOR_FormatYUV420PackedSemiPlanar64x32Tile2m8ka;
-#endif
-#ifdef MAX_RES_1080P
         if(0 == portFmt->nIndex)
           portFmt->eColorFormat = (OMX_COLOR_FORMATTYPE)
             QOMX_COLOR_FormatYUV420PackedSemiPlanar64x32Tile2m8ka;
-#endif
         else if (1 == portFmt->nIndex) {
           portFmt->eColorFormat = OMX_COLOR_FormatYUV420Planar;
         }
@@ -3081,6 +3076,10 @@ OMX_ERRORTYPE  omx_vdec::get_parameter(OMX_IN OMX_HANDLETYPE     hComp,
             GetAndroidNativeBufferUsageParams* nativeBuffersUsage = (GetAndroidNativeBufferUsageParams *) paramData;
             if(nativeBuffersUsage->nPortIndex == OMX_CORE_OUTPUT_PORT_INDEX) {
 #ifdef USE_ION
+#if defined (MAX_RES_720P)
+                nativeBuffersUsage->nUsage = (GRALLOC_USAGE_PRIVATE_CAMERA_HEAP | GRALLOC_USAGE_PRIVATE_UNCACHED);
+                DEBUG_PRINT_HIGH("ION:720P: nUsage 0x%x",nativeBuffersUsage->nUsage);
+#else
                 if(secure_mode) {
                         DEBUG_PRINT_HIGH("get_parameter: UNCACHED/PROTECTED/CP buffers from MM heap");
                         nativeBuffersUsage->nUsage = (GRALLOC_USAGE_PRIVATE_MM_HEAP | GRALLOC_USAGE_PROTECTED |
@@ -3090,6 +3089,7 @@ OMX_ERRORTYPE  omx_vdec::get_parameter(OMX_IN OMX_HANDLETYPE     hComp,
                         DEBUG_PRINT_HIGH("get_parameter: CACHED buffers from IOMMU heap");
                         nativeBuffersUsage->nUsage = (GRALLOC_USAGE_PRIVATE_IOMMU_HEAP);
                 }
+#endif //(MAX_RES_720P)
 #else
 #if defined (MAX_RES_720P) ||  defined (MAX_RES_1080P_EBI)
                 nativeBuffersUsage->nUsage = (GRALLOC_USAGE_PRIVATE_ADSP_HEAP | GRALLOC_USAGE_PRIVATE_UNCACHED);
@@ -8101,7 +8101,11 @@ int omx_vdec::alloc_map_ion_memory(OMX_U32 buffer_size,
       alloc_data->flags |= ION_SECURE;
     }
   } else {
+#ifdef MAX_RES_720P
+    alloc_data->heap_mask = ION_HEAP(MEM_HEAP_ID);
+#else
     alloc_data->heap_mask = (ION_HEAP(ION_IOMMU_HEAP_ID));
+#endif
   }
   pthread_mutex_lock(&m_vdec_ionlock);
   rc = ioctl(fd,ION_IOC_ALLOC,alloc_data);
