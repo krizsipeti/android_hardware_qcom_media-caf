@@ -30,13 +30,15 @@
 #include <media/stagefright/MetaData.h>
 #include <media/stagefright/Utils.h>
 
+#include <gui/Surface.h>
+
 namespace android {
 
 DashPlayer::Decoder::Decoder(
         const sp<AMessage> &notify,
-        const sp<NativeWindowWrapper> &nativeWindow)
+        const sp<Surface> &surface)
     : mNotify(notify),
-      mNativeWindow(nativeWindow) {
+      mSurface(surface) {
       mAudioSink = NULL;
 }
 
@@ -63,12 +65,12 @@ void DashPlayer::Decoder::configure(const sp<MetaData> &meta) {
     ALOGV("@@@@:: Decoder::configure :: mime is --- %s ---",mime);
 
     sp<AMessage> notifyMsg =
-        new AMessage(kWhatCodecNotify, id());
+        new AMessage(kWhatCodecNotify, this);
 
     sp<AMessage> format = makeFormat(meta);
 
-    if (mNativeWindow != NULL) {
-        format->setObject("native-window", mNativeWindow);
+    if (mSurface != NULL) {
+        format->setObject("surface", mSurface);
     }
 
     // Current video decoders do not return from OMX_FillThisBuffer
