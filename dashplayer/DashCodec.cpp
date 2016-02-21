@@ -2362,7 +2362,7 @@ void DashCodec::sendFormatChange() {
                     }
                 }
                 mSkipCutBuffer = new SkipCutBuffer(mEncoderDelay * frameSize,
-                                                   mEncoderPadding * frameSize);
+                                                   mEncoderPadding * frameSize, params.nChannels);
             }
 
             if (mChannelMaskPresent) {
